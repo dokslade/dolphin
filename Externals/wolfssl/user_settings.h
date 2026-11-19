@@ -99,6 +99,11 @@
  * server certificate chains to a trusted root (e.g. retroachievements.org: GTS Root R4 sent
  * cross-signed by GlobalSign Root CA). Same behaviour as OpenSSL; set by wolfSSL's --enable-curl. */
 #define WOLFSSL_ALT_CERT_CHAINS
+/* curl: load the system CA store at run time (Linux distributions, Android). Apple would need
+ * Security.framework, and Windows uses Schannel. */
+#if !defined(_WIN32) && !defined(__APPLE__)
+#define WOLFSSL_SYS_CA_CERTS
+#endif
 
 #define NO_PSK
 #define NO_PWDBASED
