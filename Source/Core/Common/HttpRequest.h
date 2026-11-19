@@ -45,6 +45,9 @@ public:
 
   void SetCookies(const std::string& cookies);
   void UseIPv4();
+  // Requests require TLS 1.2 or newer by default. This restores the TLS backend's own minimum,
+  // for emulated Wii services that may talk to servers as old as the console.
+  void AllowLegacyTLS();
   void FollowRedirects(long max = 1);
   s32 GetLastResponseCode() const;
   std::string EscapeComponent(const std::string& string);
