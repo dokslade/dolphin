@@ -205,6 +205,9 @@ public:
       _mm_storeu_si128(&((__m128i*)buf_out)[d], block[d]);
   }
 
+  // Must have the same target as CryptBlock/DecryptPipelined, otherwise they can't be inlined and
+  // every block costs a call, with the IV going through memory on CBC encryption's serial chain.
+  ATTRIBUTE_TARGET("aes")
   bool Crypt(const u8* iv, u8* iv_out, const u8* buf_in, u8* buf_out, size_t len) const override
   {
     if (len % BLOCK_SIZE)
