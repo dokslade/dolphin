@@ -7,8 +7,8 @@
 #include <array>
 #include <cstring>
 #include <iterator>
-#include <mbedtls/md.h>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <utility>
 #include <variant>
@@ -1428,6 +1428,28 @@ void MovieManager::GetSettings()
   }
 }
 
+static std::optional<std::array<u8, 16>> ComputeFileMD5(const std::string& path)
+{
+  File::IOFile file(path, "rb");
+  if (!file)
+    return std::nullopt;
+
+  Common::MD5Context context;
+  std::vector<u8> buffer(1024 * 1024);
+  for (u64 remaining = file.GetSize(); remaining != 0;)
+  {
+    const size_t size = static_cast<size_t>(std::min<u64>(remaining, buffer.size()));
+    if (!file.ReadBytes(buffer.data(), size))
+      return std::nullopt;
+    context.Update(std::span(buffer.data(), size));
+    remaining -= size;
+  }
+
+  std::array<u8, 16> md5;
+  context.Finish(md5.data());
+  return md5;
+}
+
 // NOTE: Entrypoint for own thread
 void MovieManager::CheckMD5()
 {
@@ -1441,10 +1463,7 @@ void MovieManager::CheckMD5()
 
   Core::DisplayMessage("Verifying checksum...", 2000);
 
-  std::array<u8, 16> game_md5;
-  mbedtls_md_file(mbedtls_md_info_from_type(MBEDTLS_MD_MD5), m_current_file_name.c_str(),
-                  game_md5.data());
-
+  const std::optional<std::array<u8, 16>> game_md5 = ComputeFileMD5(m_current_file_name);
   if (game_md5 == m_md5)
     Core::DisplayMessage("Checksum of current game matches the recorded game.", 2000);
   else
@@ -1458,8 +1477,8 @@ void MovieManager::GetMD5()
     return;
 
   Core::DisplayMessage("Calculating checksum of game file...", 2000);
-  mbedtls_md_file(mbedtls_md_info_from_type(MBEDTLS_MD_MD5), m_current_file_name.c_str(),
-                  m_md5.data());
+  if (const std::optional<std::array<u8, 16>> md5 = ComputeFileMD5(m_current_file_name))
+    m_md5 = *md5;
   Core::DisplayMessage("Finished calculating checksum.", 2000);
 }
 
